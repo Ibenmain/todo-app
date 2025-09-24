@@ -49,7 +49,7 @@ git clone <your-repo-url>
 cd <your-app>
 ```
 
-## Backend Setup (Laravel)
+### Backend Setup (Laravel)
 ```sh
 # Copy environment file
 cp .env.example .env
@@ -73,7 +73,7 @@ PUSHER_APP_SECRET=your_app_secret
 PUSHER_APP_CLUSTER=mt1
 ```
 
-# Install PostgreSQL PHP extension (if not already installed)
+### Install PostgreSQL PHP extension (if not already installed)
 ```sh
 #or example: Ubuntu/Debian:
 sudo apt-get install php-pgsql
@@ -86,7 +86,7 @@ php artisan migrate
 php artisan serve
 ```
 
-## PostgreSQL Database Setup
+### PostgreSQL Database Setup
 ```sh
 -- Create database
 CREATE DATABASE todo_app;
