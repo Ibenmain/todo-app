@@ -16,18 +16,28 @@
       </div>
       
       <div class="flex-1">
-        <div @click="openEditModal">
-          <h3 class="text-lg font-medium text-gray-800 dark:text-gray-200 cursor-pointer" :class="{ 'line-through text-gray-500': task.completed }">
-            {{ task.title }}
+        <div @click="openViewModal" class="cursor-pointer">
+          <h3 class="text-lg font-medium text-gray-800 dark:text-gray-200" :class="{ 'line-through text-gray-500': task.completed }">
+            {{ task.title.length > 40 ? task.title.substring(0, 40) + '...' : task.title }}
           </h3>
           <p v-if="task.description" class="text-sm text-gray-600 dark:text-gray-400 mt-1" :class="{ 'line-through': task.completed }">
-            {{ task.description }}
+            {{ task.description.length > 100 ? task.description.substring(0, 100) + '...' : task.description }}
           </p>
         </div>
       </div>
     </div>
 
     <div class="flex gap-2 items-center self-end sm:self-auto">
+      <!-- View Task Button -->
+      <button 
+        @click="openViewModal" 
+        class="p-2 border-none rounded cursor-pointer transition-all duration-300 flex items-center justify-center bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-800 dark:bg-blue-900 dark:text-blue-300"
+        title="View task details"
+      >
+        <Icon icon="mdi:eye-outline" width="18" height="18"/>    
+      </button>
+      
+      <!-- Edit Task Button -->
       <button 
         @click="openEditModal" 
         class="p-2 border-none rounded cursor-pointer transition-all duration-300 flex items-center justify-center bg-gray-50 text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:bg-gray-700 dark:text-gray-300"
@@ -36,6 +46,7 @@
         <Icon icon="mdi:pencil" width="18" height="18"/>    
       </button>
       
+      <!-- Delete Task Button -->
       <button 
         @click="$emit('delete-task', task.id)" 
         class="p-2 border-none rounded cursor-pointer transition-all duration-300 flex items-center justify-center bg-red-100 text-red-600 hover:bg-red-200 dark:bg-red-900 dark:text-red-300"
@@ -44,6 +55,7 @@
         <Icon icon="mdi:trash-can" width="18" height="18"/>
       </button>
 
+      <!-- Completed Indicator -->
       <button 
         v-if="task.completed"
         class="p-2 border-none rounded cursor-pointer flex items-center justify-center bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-300"
@@ -51,6 +63,114 @@
       >
         <Icon icon="mdi:check-circle" width="18" height="18"/>
       </button>
+    </div>
+  </div>
+
+  <!-- View Task Modal -->
+  <div
+    v-if="showViewModal"
+    class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+    @click="closeViewModal"
+  >
+    <div
+      class="bg-white rounded-xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-lg dark:bg-gray-800"
+      @click.stop
+    >
+      <div class="flex justify-between items-start mb-6">
+        <h3 class="m-0 text-gray-800 text-2xl font-bold dark:text-gray-200">
+          Task Details
+        </h3>
+        <button
+          @click="closeViewModal"
+          class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+          title="Close"
+        >
+          <Icon icon="mdi:close" width="24" height="24" class="text-gray-500 dark:text-gray-400"/>
+        </button>
+      </div>
+
+      <!-- Task Content -->
+      <div class="space-y-6">
+        <!-- Status Badge -->
+        <div class="flex items-center gap-3">
+          <span class="text-sm font-medium text-gray-600 dark:text-gray-400">Status:</span>
+          <span 
+            :class="[
+              'px-3 py-1 rounded-full text-sm font-medium',
+              task.completed 
+                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
+                : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300'
+            ]"
+          >
+            {{ task.completed ? 'Completed' : 'Pending' }}
+          </span>
+        </div>
+
+        <!-- Title Section -->
+        <div>
+          <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+            Title
+          </label>
+          <div class="p-4 bg-gray-50 rounded-lg dark:bg-gray-700">
+            <p class="text-lg text-gray-800 dark:text-gray-200 font-medium">{{ task.title }}</p>
+          </div>
+        </div>
+
+        <!-- Description Section -->
+        <div>
+          <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+            Description
+          </label>
+          <div class="p-4 bg-gray-50 rounded-lg dark:bg-gray-700 min-h-[100px]">
+            <p 
+              v-if="task.description" 
+              class="text-gray-800 dark:text-gray-200 whitespace-pre-wrap"
+            >
+              {{ task.description }}
+            </p>
+            <p v-else class="text-gray-500 dark:text-gray-400 italic">
+              No description provided
+            </p>
+          </div>
+        </div>
+
+        <!-- Metadata Section -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <div>
+            <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+              Created Date
+            </label>
+            <p class="text-gray-800 dark:text-gray-200">
+              {{ formatDate(task.created_at) }}
+            </p>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+              Last Updated
+            </label>
+            <p class="text-gray-800 dark:text-gray-200">
+              {{ formatDate(task.updated_at) }}
+            </p>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex gap-3 justify-end pt-6 border-t border-gray-200 dark:border-gray-700">
+          <button
+            @click="closeViewModal"
+            class="px-6 py-3 border-2 border-gray-300 rounded-lg bg-white text-gray-700 cursor-pointer font-medium transition-all duration-300 hover:bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
+          >
+            Close
+          </button>
+          <button
+            @click="openEditFromView"
+            class="px-6 py-3 border-2 border-indigo-500 rounded-lg bg-indigo-500 text-white cursor-pointer font-medium transition-all duration-300 hover:bg-indigo-600 hover:border-indigo-600 flex items-center gap-2"
+          >
+            <Icon icon="mdi:pencil" width="16" height="16"/>
+            Edit Task
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -132,12 +252,31 @@ const props = defineProps({
 
 const emit = defineEmits(['update-task', 'delete-task'])
 
-// Edit modal state
+// Modal states
+const showViewModal = ref(false)
 const showEditModal = ref(false)
+
+// Edit form data
 const editTitle = ref('')
 const editDescription = ref('')
 const editCompleted = ref(false)
 const titleInput = ref(null)
+
+// Open view modal
+function openViewModal() {
+  showViewModal.value = true
+}
+
+// Close view modal
+function closeViewModal() {
+  showViewModal.value = false
+}
+
+// Open edit modal from view modal
+function openEditFromView() {
+  closeViewModal()
+  openEditModal()
+}
 
 // Open edit modal
 function openEditModal() {
@@ -178,6 +317,20 @@ function saveEdit() {
   emit('update-task', updatedTask)
   closeEditModal()
 }
+
+// Format date for display
+function formatDate(dateString) {
+  if (!dateString) return 'Unknown'
+  
+  const date = new Date(dateString)
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
 </script>
 
 <style scoped>
@@ -195,5 +348,47 @@ input[type="checkbox"]:checked + label::after {
   color: white;
   font-size: 14px;
   font-weight: bold;
+}
+
+/* Smooth modal animations */
+.modal-enter-active,
+.modal-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
+
+/* Custom scrollbar for modal */
+.modal-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.modal-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.modal-content::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.modal-content::-webkit-scrollbar-thumb:hover {
+  background: #a1a1a1;
+}
+
+.dark .modal-content::-webkit-scrollbar-track {
+  background: #374151;
+}
+
+.dark .modal-content::-webkit-scrollbar-thumb {
+  background: #6b7280;
+}
+
+.dark .modal-content::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
 }
 </style>

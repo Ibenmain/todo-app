@@ -2,9 +2,9 @@
   <div class="text-center mb-8 relative">
     <h1 class="text-3xl font-bold text-gray-800 mb-8 tracking-wide dark:text-gray-200">TODO LIST</h1>
     
-    <div class="flex flex-col sm:flex-row items-center justify-around mb-4">
+    <div class="flex flex-col sm:flex-row items-center justify-around mb-4 gap-6">
       <!-- Search Bar -->
-      <div class="relative flex-1 max-w-xl">
+      <div class="relative flex-1 max-w-xl ">
         <input 
           v-model="searchQuery" 
           type="text" 
@@ -66,7 +66,7 @@
                 v-for="notification in notifications"
                 :key="notification.id"
                 :class="['p-4 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors cursor-pointer', { 'bg-blue-50 dark:bg-blue-900': !notification.read }]"
-                @click="handleNotificationClick(notification)"
+                @click="markNotificationAsRead(notification)"
               >
                 <div class="flex items-start space-x-3">
                   <div class="flex-shrink-0">
@@ -75,9 +75,12 @@
                     </div>
                   </div>
                   <div class="flex-1 min-w-0">
-                    <p class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                      {{ getNotificationTitle(notification.type) }}
-                    </p>
+                    <div class="flex items-start justify-between">
+                      <p class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                        {{ getNotificationTitle(notification.type) }}
+                      </p>
+                      <span v-if="!notification.read" class="ml-2 inline-block w-2 h-2 bg-blue-500 rounded-full"></span>
+                    </div>
                     <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
                       {{ notification.message }}
                     </p>
@@ -92,7 +95,7 @@
                   </div>
                   <button 
                     @click.stop="removeNotification(notification.id)"
-                    class="flex-shrink-0 text-gray-400 hover:text-red-500 transition-colors"
+                    class="flex-shrink-0 text-gray-400 hover:text-red-500 transition-colors p-1 rounded"
                     title="Dismiss"
                   >
                     <Icon icon="mdi:close" width="16" height="16"/>
@@ -118,16 +121,6 @@
           </div>
         </div>
         
-        <!-- Dark Mode Toggle -->
-        <!-- <button 
-          @click="$emit('toggle-dark-mode')" 
-          class="p-3 border-2 border-gray-300 rounded-full bg-white text-gray-700 cursor-pointer transition-all duration-300 flex items-center justify-center hover:border-indigo-500 hover:bg-indigo-500 hover:text-white dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 hover:scale-105 shadow-sm hover:shadow-md"
-          title="Toggle Dark Mode"
-        >
-          <Icon v-if="isDarkMode" icon="mdi:weather-sunny" width="20" height="20"/>
-          <Icon v-else icon="mdi:weather-night" width="20" height="20"/>
-        </button>
-         -->
         <!-- Logout Button -->
         <button 
           @click="logout" 
@@ -191,7 +184,8 @@ export default {
       toastTimeout: null,
       notifications: [],
       pusher: null,
-      channel: null
+      channel: null,
+      loading: false
     }
   },
   computed: {
@@ -229,16 +223,13 @@ export default {
   methods: {
     initializePusher() {
       try {
-        // Initialize Pusher
         this.pusher = new Pusher('d0d482a2fbc24bdf5600', {
           cluster: 'mt1',
           forceTLS: true
         })
 
-        // Subscribe to notifications channel
         this.channel = this.pusher.subscribe('notifications')
 
-        // Bind to the notification event
         this.channel.bind('notification.created', (data) => {
           console.log('Real-time notification received:', data)
           this.handleRealTimeNotification(data)
@@ -262,10 +253,8 @@ export default {
         created_at: data.timestamp
       }
 
-      // Add to notifications list
       this.notifications.unshift(notification)
 
-      // Show toast notification
       this.showToastNotification(
         data.message, 
         data.type || 'info', 
@@ -293,9 +282,105 @@ export default {
           read: Boolean(notification.read)
         }))
 
-        console.log('Notifications loaded:', this.notifications.length)
       } catch (error) {
         console.error('Error fetching notifications:', error)
+      }
+    },
+
+    async markNotificationAsRead(notification) {
+      if (notification.read) {
+        this.showNotifications = false
+        return
+      }
+
+      try {
+        const token = localStorage.getItem('token')
+        if (!token) return
+
+        // Update locally first for immediate feedback
+        notification.read = true
+
+        // Send API request to mark as read
+        await axios.post(`http://127.0.0.1:8000/api/notifications/${notification.id}`, {}, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json'
+          }
+        })
+
+        console.log('Notification marked as read:', notification.id)
+        
+        // Close dropdown after a short delay for better UX
+        setTimeout(() => {
+          this.showNotifications = false
+        }, 300)
+
+      } catch (error) {
+        console.error('Error marking notification as read:', error)
+        // Revert local change if API call fails
+        notification.read = false
+      }
+    },
+
+    async markAllAsRead() {
+      if (this.unreadCount === 0) return
+
+      try {
+        const token = localStorage.getItem('token')
+        if (!token) return
+
+        this.loading = true
+
+        // Update all notifications locally first
+        this.notifications.forEach(notification => {
+          notification.read = true
+        })
+
+        // Send API request to mark all as read
+        await axios.post('http://127.0.0.1:8000/api/notifications/mark-all-read', {}, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json'
+          }
+        })
+
+        console.log('All notifications marked as read')
+        this.showToastNotification('All notifications marked as read', 'success')
+
+      } catch (error) {
+        console.error('Error marking all notifications as read:', error)
+        // Revert local changes if API call fails
+        this.notifications.forEach(notification => {
+          if (!notification.originalReadState) {
+            notification.read = false
+          }
+        })
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async removeNotification(notificationId) {
+      try {
+        const token = localStorage.getItem('token')
+        if (!token) return
+
+        // Remove from local list first
+        this.notifications = this.notifications.filter(n => n.id !== notificationId)
+
+        // Send API request to delete notification
+        await axios.delete(`http://127.0.0.1:8000/api/notifications/${notificationId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json'
+          }
+        })
+
+        console.log('Notification removed:', notificationId)
+
+      } catch (error) {
+        console.error('Error removing notification:', error)
+        // Note: We don't revert here as the user expects immediate removal
       }
     },
 
@@ -318,21 +403,6 @@ export default {
 
     toggleNotifications() {
       this.showNotifications = !this.showNotifications
-    },
-
-    markAllAsRead() {
-      this.notifications.forEach(notification => {
-        notification.read = true
-      })
-    },
-
-    removeNotification(id) {
-      this.notifications = this.notifications.filter(n => n.id !== id)
-    },
-
-    handleNotificationClick(notification) {
-      notification.read = true
-      this.showNotifications = false
     },
 
     getNotificationIcon(type) {
@@ -381,7 +451,15 @@ export default {
 
     formatTime(timestamp) {
       if (!timestamp) return 'Just now'
-      return new Date(timestamp).toLocaleString()
+      
+      const now = new Date()
+      const time = new Date(timestamp)
+      const diffInSeconds = Math.floor((now - time) / 1000)
+      
+      if (diffInSeconds < 60) return 'Just now'
+      if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`
+      if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`
+      return `${Math.floor(diffInSeconds / 86400)}d ago`
     },
 
     handleClickOutside(event) {
@@ -405,5 +483,60 @@ export default {
 </script>
 
 <style scoped>
-/* Your existing styles */
+/* Smooth transitions for notifications */
+.notification-item {
+  transition: all 0.2s ease-in-out;
+}
+
+/* Loading state for mark all as read button */
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Hover effects for notification items */
+.notification-item:hover {
+  transform: translateX(2px);
+}
+
+/* Visual indicator for unread notifications */
+.unread-dot {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Custom scrollbar for notification dropdown */
+.max-h-64::-webkit-scrollbar {
+  width: 6px;
+}
+
+.max-h-64::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.max-h-64::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.max-h-64::-webkit-scrollbar-thumb:hover {
+  background: #a1a1a1;
+}
+
+.dark .max-h-64::-webkit-scrollbar-track {
+  background: #374151;
+}
+
+.dark .max-h-64::-webkit-scrollbar-thumb {
+  background: #6b7280;
+}
+
+.dark .max-h-64::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
 </style>

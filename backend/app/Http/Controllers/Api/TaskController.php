@@ -46,7 +46,7 @@ class TaskController extends Controller
             ],
         ]);
     
-                broadcast(new NotificationEvent($notification->message));
+        broadcast(new NotificationEvent($notification->message));
     
     
         return response()->json([

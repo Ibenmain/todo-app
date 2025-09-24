@@ -37,10 +37,10 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
     const token = localStorage.getItem('token')
 
-    if (to.name === 'Dashboard' && !token) {
+    if (to.name === 'TodoPage' && !token) {
         next('/auth/login')
     } else if ((to.name === 'Login' || to.name === 'Register') && token) {
-        next('/dashboard')
+        next('/todoPage')
     } else {
         next()
     }

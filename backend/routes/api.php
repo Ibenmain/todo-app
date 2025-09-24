@@ -18,4 +18,6 @@ Route::middleware('auth:api')->group(function() {
     Route::delete('/tasks/{id}', [TaskController::class, 'destroy']);
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/notifications', [NotificationController::class, 'getAllNotifications']);
+    Route::post('/notifications/{id}', [NotificationController::class, 'markAsRead']);
+    Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead']);
 });
