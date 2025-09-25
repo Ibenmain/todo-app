@@ -19,5 +19,5 @@ Route::middleware('auth:api')->group(function() {
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/notifications', [NotificationController::class, 'getAllNotifications']);
     Route::post('/notifications/{id}', [NotificationController::class, 'markAsRead']);
-    Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead']);
+    Route::put('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead']);
 });

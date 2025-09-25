@@ -7,14 +7,11 @@
     @toggle-dark-mode="toggleDarkMode"
     />
     
-    <!-- Loading State -->
     <LoadingState v-if="loading" />
     
-    <!-- Error State -->
     <ErrorState v-else-if="error" :error="error" @retry="fetchTasks" />
     
-    <!-- Tasks List -->
-    <div v-else class="space-y-4">
+    <div v-else class="space-y-4 ">
       <TaskItem 
       v-for="task in filteredTasks" 
       :key="task.id" 
@@ -22,11 +19,10 @@
       @update-task="updateTask"
       @delete-task="deleteTask"
       />
-      
+
       <EmptyState v-if="filteredTasks.length === 0 && !loading" :message="getEmptyMessage()" />
     </div>
     
-    <!-- Add Task Button -->
     <button
     @click="showAddModal = true"
     class="fixed bottom-8 right-12 w-15 h-15 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white border-none cursor-pointer shadow-lg shadow-indigo-500/40 transition-all duration-300 flex items-center justify-center hover:scale-110 hover:shadow-xl hover:shadow-indigo-500/60"
@@ -37,7 +33,6 @@
       </svg>
     </button>
 
-    <!-- Add Task Modal -->
     <AddTaskModal 
       :show="showAddModal"
       @close="closeAddModal"
@@ -57,8 +52,6 @@ import AddTaskModal from '@/components/AddTaskModal.vue'
 import LoadingState from '@/components/LoadingState.vue'
 import ErrorState from '@/components/ErrorState.vue'
 import EmptyState from '@/components/EmptyState.vue'
-import { Icon } from '@iconify/vue'
-
 
 export default {
   name: 'TodoPage',
@@ -72,9 +65,7 @@ export default {
   },
   setup() {
     const router = useRouter()
-    
-    // Reactive data
-    const isDarkMode = ref(false)
+        const isDarkMode = ref(false)
     const showAddModal = ref(false)
     const editingId = ref(null)
     const editingText = ref('')
@@ -101,8 +92,6 @@ export default {
         'Accept': 'application/json'
       }
     }
-
-    // Fetch tasks from API
     async function fetchTasks() {
       loading.value = true
       error.value = null
@@ -111,7 +100,6 @@ export default {
           headers: getAuthHeaders()
         })
         tasks.value = response.data
-        console.log('Tasks fetched:', tasks.value)
       } catch (err) {
         error.value = 'Failed to load tasks. Please try again.'
         console.error('Error fetching tasks:', err)
@@ -119,8 +107,6 @@ export default {
         loading.value = false
       }
     }
-
-    // Add new task
   
 
     async function addTask(newTask) {
@@ -138,8 +124,6 @@ export default {
   }
 }
 
-
-    // Update task
     async function updateTask(updatedTask) {
         try {
           const response = await axios.put(`http://127.0.0.1:8000/api/tasks/${updatedTask.id}`, {
@@ -149,20 +133,15 @@ export default {
           }, {
             headers: getAuthHeaders()
           })
-
-          // Update the task in the local array
           const index = tasks.value.findIndex(t => t.id === updatedTask.id)
           if (index !== -1) {
             tasks.value[index] = { ...tasks.value[index], ...updatedTask }
           }
-          console.log('Task updated:', response.data)
         } catch (err) {
           error.value = 'Failed to update task. Please try again.'
           console.error('Error updating task:', err)
         }
     }
-
-    // Delete task
     async function deleteTask(id) {
       if (!confirm('Are you sure you want to delete this task?')) return
 
@@ -176,8 +155,6 @@ export default {
         console.error('Error deleting task:', err)
       }
     }
-
-    // Edit task functions
     function startEdit(task) {
       editingId.value = task.id
       editingText.value = task.title
@@ -223,22 +200,16 @@ export default {
     function closeAddModal() {
       showAddModal.value = false
     }
-
-    // Computed properties
     const filteredTasks = computed(() => {
       let filtered = tasks.value
       const searchQuery = searchHeader.value?.searchQuery || ''
       const selectedFilter = searchHeader.value?.selectedFilter || 'ALL'
-
-      // Filter by search query
       if (searchQuery.trim()) {
         filtered = filtered.filter(task => 
           task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
           (task.description && task.description.toLowerCase().includes(searchQuery.toLowerCase()))
         )
       }
-
-      // Filter by completion status
       if (selectedFilter === 'COMPLETED') {
         filtered = filtered.filter(task => task.completed)
       } else if (selectedFilter === 'PENDING') {
@@ -268,8 +239,6 @@ export default {
       }
       return 'No tasks yet. Click the + button to add your first task!'
     }
-
-    // Load dark mode preference and fetch tasks on mount
     onMounted(() => {
       const savedDarkMode = localStorage.getItem('darkMode') === 'true'
       if (savedDarkMode) {
@@ -279,8 +248,6 @@ export default {
       
       fetchTasks()
     })
-
-    // Save dark mode preference
     watch(isDarkMode, (newValue) => {
       localStorage.setItem('darkMode', newValue.toString())
     })
@@ -311,7 +278,6 @@ export default {
 </script>
 
 <style scoped>
-/* Your existing styles */
 input[type="checkbox"]:checked + label {
   background: #667eea;
   border-color: #667eea;

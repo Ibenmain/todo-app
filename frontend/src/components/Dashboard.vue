@@ -1,4 +1,4 @@
-<template>
+<!-- <template>
 <div class="w-full ">
   <div class=" container mx-auto px-4 sm:px-6 lg:px-8 py-8  min-h-screen font-sans ">
     <div class="text-center mb-8">
@@ -39,13 +39,11 @@
       </div>
     </div>
 
-    <!-- Loading State -->
     <div v-if="loading" class="text-center py-8">
       <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
       <p class="text-gray-600 dark:text-gray-400 mt-2">Loading tasks...</p>
     </div>
 
-    <!-- Error State -->
     <div v-else-if="error" class="text-center py-8">
       <p class="text-red-500 dark:text-red-400">{{ error }}</p>
       <button @click="fetchTasks" class="mt-2 px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600">
@@ -53,7 +51,6 @@
       </button>
     </div>
 
-    <!-- Tasks List -->
     <div v-else class="space-y-4">
       <div 
         v-for="task in filteredTasks" 
@@ -95,7 +92,6 @@
         </div>
 
         <div class="flex gap-2 items-center self-end sm:self-auto">
-          <!-- if user is owner of task make the button not disable else disable it -->
           <button 
             v-if="!task.completed"
             @click="startEdit(task)" 
@@ -136,7 +132,6 @@
       </div>
     </div>
 
-    <!-- Add Task Button -->
     <button
       @click="showAddModal = true"
       class="fixed bottom-8 right-8 w-15 h-15 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white border-none cursor-pointer shadow-lg shadow-indigo-500/40 transition-all duration-300 flex items-center justify-center hover:scale-110 hover:shadow-xl hover:shadow-indigo-500/60"
@@ -147,7 +142,6 @@
       </svg>
     </button>
 
-    <!-- Add Task Modal -->
     <div
       v-if="showAddModal"
       class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
@@ -163,9 +157,7 @@
           Add New Task
         </h3>
 
-        <!-- Form -->
         <form @submit.prevent="addTask">
-          <!-- Title -->
           <input
             v-model="newNoteTitle"
             type="text"
@@ -174,7 +166,6 @@
             required
           />
 
-          <!-- Description -->
           <textarea
             v-model="newNoteDescription"
             placeholder="Enter your task description here..."
@@ -209,7 +200,6 @@
 import { ref, computed, nextTick, onMounted, watch } from 'vue'
 import axios from 'axios'
 
-// Reactive data
 const searchQuery = ref('')
 const selectedFilter = ref('ALL')
 const isDarkMode = ref(false)
@@ -241,7 +231,6 @@ function getAuthHeaders() {
     }
 }
 
-// Fetch tasks from API
 async function fetchTasks() {
     loading.value = true
     error.value = null
@@ -250,7 +239,6 @@ async function fetchTasks() {
             headers: getAuthHeaders()
         })
       tasks.value = response.data
-        console.log('Tasks fetched:', tasks.value)
     } catch (err) {
         error.value = 'Failed to load tasks. Please try again.'
         console.error('Error fetching tasks:', err)
@@ -259,7 +247,6 @@ async function fetchTasks() {
     }
 }
 
-// Add new task
 async function addTask() {
     if (!newNoteTitle.value.trim()) return
 
@@ -271,10 +258,8 @@ async function addTask() {
             headers: getAuthHeaders()
         })
 
-        // Add the new task to the beginning of the list
         tasks.value.unshift(response.data)
         
-        // Reset form and close modal
         newNoteTitle.value = ''
         newNoteDescription.value = ''
         closeAddModal()
@@ -284,7 +269,6 @@ async function addTask() {
     }
 }
 
-// Update only my task completion status
 async function updateTask(task) {
     try {
         const response = await axios.put(`http://127.0.0.1:8000/api/tasks/${task.id}`, {
@@ -294,17 +278,13 @@ async function updateTask(task) {
         }, {
             headers: getAuthHeaders()
         })
-      // Object.assign(task, response.data)
-        console.log('Task updated:', response.data)
     } catch (err) {
-        // Revert the change if API call fails
         task.completed = !task.completed
         error.value = 'Failed to update task. Please try again.'
         console.error('Error updating task:', err)
     }
 }
 
-// Delete task
 async function deleteTask(id) {
     if (!confirm('Are you sure you want to delete this task?')) return
 
@@ -319,7 +299,6 @@ async function deleteTask(id) {
     }
 }
 
-// Edit task functions
 function startEdit(task) {
     editingId.value = task.id
     editingText.value = task.title
@@ -347,7 +326,6 @@ async function finishEdit() {
                     headers: getAuthHeaders()
                 })
             } catch (err) {
-                // Revert if API call fails
                 task.title = originalTitle
                 error.value = 'Failed to update task. Please try again.'
                 console.error('Error updating task:', err)
@@ -368,11 +346,9 @@ function closeAddModal() {
     newNoteDescription.value = ''
 }
 
-// Computed properties
 const filteredTasks = computed(() => {
     let filtered = tasks.value
 
-    // Filter by search query
     if (searchQuery.value.trim()) {
         filtered = filtered.filter(task => 
             task.title.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
@@ -380,7 +356,6 @@ const filteredTasks = computed(() => {
         )
     }
 
-    // Filter by completion status
     if (selectedFilter.value === 'COMPLETED') {
         filtered = filtered.filter(task => task.completed)
     } else if (selectedFilter.value === 'PENDING') {
@@ -408,7 +383,6 @@ function getEmptyMessage() {
     return 'No tasks yet. Click the + button to add your first task!'
 }
 
-// Load dark mode preference and fetch tasks on mount
 onMounted(() => {
     const savedDarkMode = localStorage.getItem('darkMode') === 'true'
     if (savedDarkMode) {
@@ -416,18 +390,15 @@ onMounted(() => {
         document.body.classList.add('dark-mode')
     }
     
-    // Fetch tasks when component mounts
     fetchTasks()
 })
 
-// Save dark mode preference
 watch(isDarkMode, (newValue) => {
     localStorage.setItem('darkMode', newValue.toString())
 })
 </script>
 
 <style scoped>
-/* Custom styles for the checkbox */
 input[type="checkbox"]:checked + label {
   background: #667eea;
   border-color: #667eea;
@@ -448,7 +419,6 @@ input[type="checkbox"]:checked + label::after {
   color: #e2e8f0;
 }
 
-/* Loading spinner */
 .animate-spin {
   animation: spin 1s linear infinite;
 }
@@ -457,4 +427,4 @@ input[type="checkbox"]:checked + label::after {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
-</style>
+</style> -->

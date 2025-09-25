@@ -6,5 +6,4 @@
 </template>
 
 <script setup>
-// No logic needed for this component
 </script>

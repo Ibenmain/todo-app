@@ -14,9 +14,7 @@
         Add New Task
       </h3>
 
-      <!-- Form -->
       <form @submit.prevent="$emit('add-task', { title: newNoteTitle, description: newNoteDescription })">
-        <!-- Title -->
         <input
           v-model="newNoteTitle"
           type="text"
@@ -25,7 +23,6 @@
           required
         />
 
-        <!-- Description -->
         <textarea
           v-model="newNoteDescription"
           placeholder="Enter your task description here..."
@@ -66,7 +63,6 @@ const emit = defineEmits(['close', 'add-task'])
 const newNoteTitle = ref('')
 const newNoteDescription = ref('')
 
-// Reset form when modal closes
 watch(() => props.show, (newVal) => {
   if (!newVal) {
     newNoteTitle.value = ''

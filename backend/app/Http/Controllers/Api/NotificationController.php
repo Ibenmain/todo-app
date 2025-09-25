@@ -13,8 +13,6 @@ class NotificationController extends Controller
 {
     public function getAllNotifications()
     {
-        error_log("Fetching all notifications");
-        // get not read notifications
         $notifications = Notification::where('read', false)->orderBy('created_at', 'desc')->get();
 
         return response()->json($notifications);
@@ -22,9 +20,8 @@ class NotificationController extends Controller
 
     public function markAsRead(Request $request )
     {
+        // error_log('Marking notification as read');
         $id = $request->id;
-        error_log("Marking notification $id as read");
-
         $notification = Notification::find($id);
         if ($notification) {
             $notification->read = true;
@@ -34,7 +31,7 @@ class NotificationController extends Controller
         return response()->json(['message' => 'Notification not found'], 404);
     }
 
-    public function markAllAsRead()
+    public function markAllAsRead(Request $request)
     {
         Notification::where('read', false)->update(['read' => true]);
         return response()->json(['message' => 'All notifications marked as read']);

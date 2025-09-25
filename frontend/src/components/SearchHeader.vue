@@ -2,9 +2,9 @@
   <div class="text-center mb-8 relative">
     <h1 class="text-3xl font-bold text-gray-800 mb-8 tracking-wide dark:text-gray-200">TODO LIST</h1>
     
-    <div class="flex flex-col sm:flex-row items-center justify-around mb-4 gap-6">
+    <div class="flex flex-col sm:flex-row items-center justify-around mb-4">
       <!-- Search Bar -->
-      <div class="relative flex-1 max-w-xl ">
+      <div class="relative flex-1 max-w-xl">
         <input 
           v-model="searchQuery" 
           type="text" 
@@ -231,11 +231,8 @@ export default {
         this.channel = this.pusher.subscribe('notifications')
 
         this.channel.bind('notification.created', (data) => {
-          console.log('Real-time notification received:', data)
           this.handleRealTimeNotification(data)
         })
-
-        console.log('Pusher initialized successfully for real-time notifications')
 
       } catch (error) {
         console.error('Error initializing Pusher:', error)
@@ -261,7 +258,6 @@ export default {
         data.data?.task_title
       )
     },
-
     async fetchNotifications() {
       try {
         const token = localStorage.getItem('token')
@@ -269,19 +265,18 @@ export default {
           console.log('No token found, skipping notification fetch')
           return
         }
-
         const response = await axios.get('http://127.0.0.1:8000/api/notifications', {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Accept': 'application/json'
           }
         })
-
         this.notifications = response.data.map(notification => ({
           ...notification,
           read: Boolean(notification.read)
         }))
 
+        console.log('Notifications loaded:', this.notifications.length)
       } catch (error) {
         console.error('Error fetching notifications:', error)
       }
@@ -301,6 +296,7 @@ export default {
         notification.read = true
 
         // Send API request to mark as read
+        console.log('Marking notification as read:', notification.id)
         await axios.post(`http://127.0.0.1:8000/api/notifications/${notification.id}`, {}, {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -337,7 +333,7 @@ export default {
         })
 
         // Send API request to mark all as read
-        await axios.post('http://127.0.0.1:8000/api/notifications/mark-all-read', {}, {
+        await axios.put('http://127.0.0.1:8000/api/notifications/mark-all-read', {}, {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Accept': 'application/json'

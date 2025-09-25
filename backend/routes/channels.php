@@ -8,6 +8,5 @@ Broadcast::channel('user.{userId}', function ($user, $userId) {
 
 
 Broadcast::channel('notifications.{userId}', function ($user, $userId) {
-    // Only allow access if the authenticated user ID matches the channel userId
     return (int) $user->id === (int) $userId;
 });
