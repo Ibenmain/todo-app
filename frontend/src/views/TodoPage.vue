@@ -1,6 +1,6 @@
 <template>
-<div class="w-full ">
-  <div class=" container mx-auto px-4 sm:px-6 lg:px-8 py-8  min-h-screen font-sans ">
+<div class="w-full">
+  <div class=" container mx-auto px-4 sm:px-6 lg:px-8 py-8  min-h-screen font-sans">
     <SearchHeader 
     ref="searchHeader"
     :is-dark-mode="isDarkMode"
@@ -11,7 +11,7 @@
     
     <ErrorState v-else-if="error" :error="error" @retry="fetchTasks" />
     
-    <div v-else class="space-y-4 ">
+    <div v-else class="space-y-4 h-[700px] overflow-y-auto p-5 webkit-scrollbar">
       <TaskItem 
       v-for="task in filteredTasks" 
       :key="task.id" 
@@ -281,6 +281,21 @@ export default {
 input[type="checkbox"]:checked + label {
   background: #667eea;
   border-color: #667eea;
+}
+
+/* style the scrollbar */
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #667eea;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: #5a67d8;
 }
 
 input[type="checkbox"]:checked + label::after {

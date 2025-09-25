@@ -3,7 +3,6 @@
     <h1 class="text-3xl font-bold text-gray-800 mb-8 tracking-wide dark:text-gray-200">TODO LIST</h1>
     
     <div class="flex flex-col sm:flex-row items-center justify-around mb-4">
-      <!-- Search Bar -->
       <div class="relative flex-1 max-w-xl">
         <input 
           v-model="searchQuery" 
@@ -16,9 +15,7 @@
         </button>
       </div>
       
-      <!-- Controls Group -->
       <div class="flex gap-3 items-center">
-        <!-- Animated Dropdown -->
         <div class="relative group">
           <select 
             v-model="selectedFilter" 
@@ -33,7 +30,6 @@
           </div>
         </div>
         
-        <!-- Notification Button -->
         <div class="relative">
           <button 
             @click="toggleNotifications"
@@ -49,7 +45,6 @@
             {{ unreadCount }}
           </span>
 
-          <!-- Notification Popup -->
           <div 
             v-if="showNotifications"
             class="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 z-50"
@@ -121,7 +116,6 @@
           </div>
         </div>
         
-        <!-- Logout Button -->
         <button 
           @click="logout" 
           class="p-3 border-2 border-gray-300 rounded-full bg-white text-gray-700 cursor-pointer transition-all duration-300 flex items-center justify-center hover:border-red-600 hover:bg-red-600 hover:text-white dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 hover:scale-105 shadow-sm hover:shadow-md"
@@ -132,7 +126,6 @@
       </div>
     </div>
 
-    <!-- Toast Notification -->
     <div 
       v-if="showToast" 
       :class="['fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg transform transition-all duration-300', toastClasses]"
@@ -150,7 +143,6 @@
       </div>
     </div>
 
-    <!-- Backdrop for notifications -->
     <div 
       v-if="showNotifications"
       class="fixed inset-0 z-40"
@@ -292,10 +284,8 @@ export default {
         const token = localStorage.getItem('token')
         if (!token) return
 
-        // Update locally first for immediate feedback
         notification.read = true
 
-        // Send API request to mark as read
         console.log('Marking notification as read:', notification.id)
         await axios.post(`http://127.0.0.1:8000/api/notifications/${notification.id}`, {}, {
           headers: {
@@ -306,14 +296,12 @@ export default {
 
         console.log('Notification marked as read:', notification.id)
         
-        // Close dropdown after a short delay for better UX
         setTimeout(() => {
           this.showNotifications = false
         }, 300)
 
       } catch (error) {
         console.error('Error marking notification as read:', error)
-        // Revert local change if API call fails
         notification.read = false
       }
     },
@@ -327,12 +315,10 @@ export default {
 
         this.loading = true
 
-        // Update all notifications locally first
         this.notifications.forEach(notification => {
           notification.read = true
         })
 
-        // Send API request to mark all as read
         await axios.put('http://127.0.0.1:8000/api/notifications/mark-all-read', {}, {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -340,12 +326,10 @@ export default {
           }
         })
 
-        console.log('All notifications marked as read')
         this.showToastNotification('All notifications marked as read', 'success')
 
       } catch (error) {
         console.error('Error marking all notifications as read:', error)
-        // Revert local changes if API call fails
         this.notifications.forEach(notification => {
           if (!notification.originalReadState) {
             notification.read = false
@@ -361,10 +345,8 @@ export default {
         const token = localStorage.getItem('token')
         if (!token) return
 
-        // Remove from local list first
         this.notifications = this.notifications.filter(n => n.id !== notificationId)
 
-        // Send API request to delete notification
         await axios.delete(`http://127.0.0.1:8000/api/notifications/${notificationId}`, {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -376,7 +358,6 @@ export default {
 
       } catch (error) {
         console.error('Error removing notification:', error)
-        // Note: We don't revert here as the user expects immediate removal
       }
     },
 
@@ -479,23 +460,19 @@ export default {
 </script>
 
 <style scoped>
-/* Smooth transitions for notifications */
 .notification-item {
   transition: all 0.2s ease-in-out;
 }
 
-/* Loading state for mark all as read button */
 button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
-/* Hover effects for notification items */
 .notification-item:hover {
   transform: translateX(2px);
 }
 
-/* Visual indicator for unread notifications */
 .unread-dot {
   animation: pulse 2s infinite;
 }
@@ -505,7 +482,6 @@ button:disabled {
   50% { opacity: 0.5; }
 }
 
-/* Custom scrollbar for notification dropdown */
 .max-h-64::-webkit-scrollbar {
   width: 6px;
 }
