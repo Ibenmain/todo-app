@@ -10,7 +10,6 @@ use App\Events\TaskCreated;
 use App\Events\NotificationEvent;
 
 
-
 class TaskController extends Controller
 {
 
@@ -21,7 +20,6 @@ class TaskController extends Controller
         return response()->json($tasks);
     }
 
-    
     public function store(Request $request)
     {
         $validated = $request->validate([

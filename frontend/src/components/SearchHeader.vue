@@ -2,7 +2,7 @@
   <div class="text-center mb-8 relative">
     <h1 class="text-3xl font-bold text-gray-800 mb-8 tracking-wide dark:text-gray-200">TODO LIST</h1>
     
-    <div class="flex flex-col sm:flex-row items-center justify-around mb-4">
+    <div class="flex flex-col sm:flex-row items-center justify-around gap-6 ">
       <div class="relative flex-1 max-w-xl">
         <input 
           v-model="searchQuery" 
@@ -16,14 +16,15 @@
       </div>
       
       <div class="flex gap-3 items-center">
+        <!-- make the option viewed when i hover on the select -->
         <div class="relative group">
           <select 
             v-model="selectedFilter" 
-            class="px-6 py-3 border-2 border-indigo-500 rounded-full bg-indigo-500 text-white font-semibold cursor-pointer text-sm transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 hover:bg-indigo-600 hover:border-indigo-600 focus:outline-none focus:ring-4 focus:ring-indigo-200 dark:focus:ring-indigo-800 appearance-none pr-10"
+            class="appearance-none w-40 pl-4 pr-8 py-3 border-2 border-gray-300 rounded-full text-base focus:outline-none focus:border-indigo-500 transition-all duration-300 shadow-sm hover:shadow-md bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 cursor-pointer hover:bg-purple-500 hover:text-white"
           >
-            <option value="ALL">ALL</option>
-            <option value="COMPLETED">COMPLETED</option>
-            <option value="PENDING">PENDING</option>
+            <option value="ALL">All</option>
+            <option value="COMPLETED">Completed</option>
+            <option value="PENDING">Pending</option>
           </select>
           <div class="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
             <Icon icon="mdi:chevron-down" class="text-white transition-transform duration-300 group-hover:rotate-180" width="16" height="16"/>

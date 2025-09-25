@@ -58,6 +58,7 @@ import * as yup from "yup"
 import axios from "axios" 
 import { Icon } from '@iconify/vue'
 import { useRouter } from "vue-router" 
+import api from "@/api"
 
 const router = useRouter()
 const formRef = ref(null) 
@@ -83,12 +84,15 @@ function togglePassword(event) {
 
 async function handleSubmit(values) {
   try {
-    const response = await axios.post("http://127.0.0.1:8000/api/auth/login", {
+    const response = await api.post("/auth/login", {
       email: values.email,
       password: values.password
     })
-
-    localStorage.setItem("token", response.data.token)
+    if (response.status !== 200) {
+      throw new Error("Login failed")
+    }
+    localStorage.setItem("token", response.data.access_token)
+    localStorage.setItem("expires_in", response.data.expires_in)
     router.push('/todoPage')
     alert("Login successful!")
 

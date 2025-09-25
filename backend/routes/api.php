@@ -9,6 +9,7 @@ use App\Models\Notification;
 // Public routes
 Route::post('auth/register', [AuthController::class, 'register']);
 Route::post('auth/login', [AuthController::class, 'login']);
+Route::post('auth/refresh', [AuthController::class, 'refresh']);
 
 // Protected routes
 Route::middleware('auth:api')->group(function() {

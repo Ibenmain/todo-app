@@ -172,7 +172,9 @@ async function handleSubmit(values) {
       password: values.password,
       password_confirmation: values.password_confirmation
     })
-
+    if (response.status !== 201) {
+      throw new Error("Registration failed")
+    }
     alert("Registration successful! Please login.")
     router.push('/auth/login')
     nextTick(() => {
