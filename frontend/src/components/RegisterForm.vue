@@ -1,3 +1,83 @@
+
+<script setup>
+import { ref, nextTick } from "vue"
+import { Form, Field, ErrorMessage } from "vee-validate"
+import * as yup from "yup"
+import axios from "axios" 
+import { Icon } from '@iconify/vue'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+const formRef = ref(null) 
+const showPassword = ref(false)
+const showConfirmPassword = ref(false)
+
+const schema = yup.object({
+  full_name: yup.string().required("Full name is required"),
+  phone: yup.string()
+    .matches(/^\+?[1-9]\d{1,14}$/, "Invalid phone number")
+    .required("Phone number is required"),
+  address: yup.string().required("Address is required"),
+  email: yup.string().email("Invalid email").required("Email is required"),
+  password: yup.string().min(6, "At least 6 characters").required("Password is required"),
+  password_confirmation: yup.string()
+    .oneOf([yup.ref("password")], "Passwords must match")
+    .required("Confirm password is required")
+})
+
+function togglePassword(event) {
+  event.preventDefault()
+  event.stopPropagation()
+  showPassword.value = !showPassword.value
+  
+  nextTick(() => {
+    const passwordField = document.getElementById('password')
+    if (passwordField) {
+      passwordField.focus()
+    }
+  })
+}
+
+function toggleConfirmPassword(event) {
+  event.preventDefault()
+  event.stopPropagation()
+  showConfirmPassword.value = !showConfirmPassword.value
+  
+  nextTick(() => {
+    const confirmPasswordField = document.getElementById('password_confirmation')
+    if (confirmPasswordField) {
+      confirmPasswordField.focus()
+    }
+  })
+}
+
+async function handleSubmit(values) {
+  try {
+    const response = await axios.post("http://127.0.0.1:8000/api/auth/register", {
+      full_name: values.full_name,
+      email: values.email,
+      phone: values.phone,
+      address: values.address,
+      password: values.password,
+      password_confirmation: values.password_confirmation
+    })
+    if (response.status !== 201) {
+      throw new Error("Registration failed")
+    }
+    alert("Registration successful! Please login.")
+    router.push('/auth/login')
+    nextTick(() => {
+      formRef.value?.resetForm()
+    })
+  } catch (error) {
+    console.error("Registration failed:", error)
+    alert(error.response?.data?.message || "Registration failed. Please try again.")
+  }
+}
+</script>
+
+<style src="./AuthForm.css"></style>
+
 <template>
   <div class="auth-container">
     <div class="auth-box">
@@ -109,82 +189,3 @@
     </div>
   </div>
 </template>
-
-<script setup>
-import { ref, nextTick } from "vue"
-import { Form, Field, ErrorMessage } from "vee-validate"
-import * as yup from "yup"
-import axios from "axios" 
-import { Icon } from '@iconify/vue'
-import { useRouter } from 'vue-router'
-
-const router = useRouter()
-const formRef = ref(null) 
-const showPassword = ref(false)
-const showConfirmPassword = ref(false)
-
-const schema = yup.object({
-  full_name: yup.string().required("Full name is required"),
-  phone: yup.string()
-    .matches(/^\+?[1-9]\d{1,14}$/, "Invalid phone number")
-    .required("Phone number is required"),
-  address: yup.string().required("Address is required"),
-  email: yup.string().email("Invalid email").required("Email is required"),
-  password: yup.string().min(6, "At least 6 characters").required("Password is required"),
-  password_confirmation: yup.string()
-    .oneOf([yup.ref("password")], "Passwords must match")
-    .required("Confirm password is required")
-})
-
-function togglePassword(event) {
-  event.preventDefault()
-  event.stopPropagation()
-  showPassword.value = !showPassword.value
-  
-  nextTick(() => {
-    const passwordField = document.getElementById('password')
-    if (passwordField) {
-      passwordField.focus()
-    }
-  })
-}
-
-function toggleConfirmPassword(event) {
-  event.preventDefault()
-  event.stopPropagation()
-  showConfirmPassword.value = !showConfirmPassword.value
-  
-  nextTick(() => {
-    const confirmPasswordField = document.getElementById('password_confirmation')
-    if (confirmPasswordField) {
-      confirmPasswordField.focus()
-    }
-  })
-}
-
-async function handleSubmit(values) {
-  try {
-    const response = await axios.post("http://127.0.0.1:8000/api/auth/register", {
-      full_name: values.full_name,
-      email: values.email,
-      phone: values.phone,
-      address: values.address,
-      password: values.password,
-      password_confirmation: values.password_confirmation
-    })
-    if (response.status !== 201) {
-      throw new Error("Registration failed")
-    }
-    alert("Registration successful! Please login.")
-    router.push('/auth/login')
-    nextTick(() => {
-      formRef.value?.resetForm()
-    })
-  } catch (error) {
-    console.error("Registration failed:", error)
-    alert(error.response?.data?.message || "Registration failed. Please try again.")
-  }
-}
-</script>
-
-<style src="./AuthForm.css"></style>

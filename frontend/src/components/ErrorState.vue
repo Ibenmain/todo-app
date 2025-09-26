@@ -1,3 +1,11 @@
+<script setup>
+defineProps({
+  error: String
+})
+
+defineEmits(['retry'])
+</script>
+
 <template>
   <div class="text-center py-8">
     <p class="text-red-500 dark:text-red-400">{{ error }}</p>
@@ -6,11 +14,3 @@
     </button>
   </div>
 </template>
-
-<script setup>
-defineProps({
-  error: String
-})
-
-defineEmits(['retry'])
-</script>

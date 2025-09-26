@@ -34,19 +34,19 @@ class TaskController extends Controller
             'completed' => false,
         ]);
     
-        $notification = Notification::create([
-            'user_id' => auth('api')->id(),
-            'type' => 'success',
-            'message' => "New task \"{$task->title}\" created",
-            'data' => [
-                'task_id' => $task->id,
-                'task_title' => $task->title,
-            ],
-        ]);
-    
-        broadcast(new NotificationEvent($notification->message));
-    
-    
+       $notification = Notification::create([
+    'user_id' => auth('api')->id(),
+    'type' => 'success',
+    'message' => "New task \"{$task->title}\" created",
+    'data' => [
+        'user_id' => auth('api')->id(), // add this
+        'task_id' => $task->id,
+        'task_title' => $task->title,
+    ],
+]);
+
+broadcast(new NotificationEvent($notification->message, $notification->type, $notification->data))->toOthers();
+
         return response()->json([
             'task' => $task,
         ], 201);

@@ -16,14 +16,15 @@
       <script>
         // Pusher.logToConsole = true;
 
-        var pusher = new Pusher('d0d482a2fbc24bdf5600', {
-          cluster: 'mt1'
-        });
+        // var pusher = new Pusher('d0d482a2fbc24bdf5600', {
+        //   cluster: 'mt1'
+        // });
 
-        var channel = pusher.subscribe('notifications');
-        channel.bind('my-event', function (data) {
-          app.messages.push(JSON.stringify(data));
-        });
+        // var channel = pusher.subscribe('notifications');
+        
+        // channel.bind('my-event', function (data) {
+        //   app.messages.push(JSON.stringify(data));
+        // });
 
         const app = new Vue({
           el: '#app',

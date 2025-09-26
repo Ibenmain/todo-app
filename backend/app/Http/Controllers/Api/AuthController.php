@@ -31,6 +31,7 @@ class AuthController extends Controller {
         return response()->json(['user'=>$user,'token'=>$token],201);
     }
 
+
     public function login(Request $r) {
 
         $credentials = $r->only('email','password');
@@ -58,8 +59,11 @@ class AuthController extends Controller {
         }
     }
 
+
     public function logout() {
         auth('api')->logout();
         return response()->json(['message'=>'Logged out']);
     }
 }
+
+

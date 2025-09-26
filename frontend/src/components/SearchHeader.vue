@@ -1,3 +1,369 @@
+
+<script>
+import { Icon } from '@iconify/vue'
+import axios from 'axios'
+
+
+export default {
+  name: 'HeaderComponent',
+  components: {
+    Icon
+  },
+  props: {
+    isDarkMode: Boolean
+  },
+  emits: ['toggle-dark-mode'],
+  data() {
+    return {
+      searchQuery: '',
+      selectedFilter: 'ALL',
+      showNotifications: false,
+      showToast: false,
+      toastMessage: '',
+      toastType: 'info',
+      toastTask: '',
+      toastTimeout: null,
+      notifications: [],
+      pusher: null,
+      channel: null,
+      loading: false
+    }
+  },
+  computed: {
+    unreadCount() {
+      return this.notifications.filter(n => !n.read).length
+    },
+    toastClasses() {
+      const classes = {
+        info: 'bg-blue-500',
+        success: 'bg-green-500',
+        warning: 'bg-yellow-500',
+        error: 'bg-red-500'
+      }
+      return classes[this.toastType] || 'bg-blue-500'
+    },
+    toastStyle() {
+      return this.showToast 
+        ? 'translate-x-0 opacity-100' 
+        : 'translate-x-full opacity-0'
+    }
+  },
+
+  async mounted() {
+    await this.fetchNotifications()
+    this.initializePusher()
+    document.addEventListener('click', this.handleClickOutside)
+    document.addEventListener('keydown', this.handleEscapeKey)
+  },
+
+  beforeUnmount() {
+    if (this.channel) {
+      this.channel.unbind('notification.created')
+    }
+    document.removeEventListener('click', this.handleClickOutside)
+    document.removeEventListener('keydown', this.handleEscapeKey)
+  },
+  
+  methods: {
+
+    initializePusher() {
+      try {
+        this.pusher = new Pusher('d0d482a2fbc24bdf5600', {
+          cluster: 'mt1',
+          forceTLS: true
+        })
+
+        this.channel = this.pusher.subscribe('notifications')
+
+        this.channel.bind('notification.created', (data) => {
+          this.handleRealTimeNotification(data)
+        })
+
+      } catch (error) {
+        console.error('Error initializing Pusher:', error)
+      }
+    },
+
+    handleRealTimeNotification(data) {
+      const notification = {
+        id: data.id || Date.now(),
+        message: data.message,
+        type: data.type || 'info',
+        data: data.data || {},
+        timestamp: data.timestamp,
+        read: false,
+        created_at: data.timestamp
+      }
+
+      this.notifications.unshift(notification)
+
+      this.showToastNotification(
+        data.message, 
+        data.type || 'info', 
+        data.data?.task_title
+      )
+    },
+
+    async fetchNotifications() {
+      try {
+        const token = localStorage.getItem('token')
+        if (!token) {
+          console.log('No token found, skipping notification fetch')
+          return
+        }
+        const response = await axios.get('http://127.0.0.1:8000/api/notifications', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json'
+          }
+        })
+        this.notifications = response.data.map(notification => ({
+          ...notification,
+          read: Boolean(notification.read)
+        }))
+
+      } catch (error) {
+        console.error('Error fetching notifications:', error)
+      }
+    },
+
+    async markNotificationAsRead(notification) {
+      if (notification.read) {
+        this.showNotifications = false
+        return
+      }
+
+      try {
+        const token = localStorage.getItem('token')
+        if (!token) return
+
+        notification.read = true
+
+        await axios.post(`http://127.0.0.1:8000/api/notifications/${notification.id}`, {}, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json'
+          }
+        })
+        
+        setTimeout(() => {
+          this.showNotifications = false
+        }, 300)
+
+      } catch (error) {
+        console.error('Error marking notification as read:', error)
+        notification.read = false
+      }
+    },
+
+    async markAllAsRead() {
+      if (this.unreadCount === 0) return
+
+      try {
+        const token = localStorage.getItem('token')
+        if (!token) return
+
+        this.loading = true
+
+        this.notifications.forEach(notification => {
+          notification.read = true
+        })
+
+        await axios.put('http://127.0.0.1:8000/api/notifications/mark-all-read', {}, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json'
+          }
+        })
+
+        this.showToastNotification('All notifications marked as read', 'success')
+
+      } catch (error) {
+        console.error('Error marking all notifications as read:', error)
+        this.notifications.forEach(notification => {
+          if (!notification.originalReadState) {
+            notification.read = false
+          }
+        })
+      } finally {
+        this.loading = false
+      }
+    },
+
+    // async removeNotification(notificationId) {
+    //   try {
+    //     const token = localStorage.getItem('token')
+    //     if (!token) return
+
+    //     this.notifications = this.notifications.filter(n => n.id !== notificationId)
+
+    //     await axios.delete(`http://127.0.0.1:8000/api/notifications/${notificationId}`, {
+    //       headers: {
+    //         'Authorization': `Bearer ${token}`,
+    //         'Accept': 'application/json'
+    //       }
+    //     })
+
+    //     console.log('Notification removed:', notificationId)
+
+    //   } catch (error) {
+    //     console.error('Error removing notification:', error)
+    //   }
+    // },
+
+    showToastNotification(message, type = 'info', taskTitle = '') {
+      this.toastMessage = message
+      this.toastType = type
+      this.toastTask = taskTitle
+      this.showToast = true
+
+      clearTimeout(this.toastTimeout)
+      this.toastTimeout = setTimeout(() => {
+        this.hideToast()
+      }, 5000)
+    },
+
+    hideToast() {
+      this.showToast = false
+      clearTimeout(this.toastTimeout)
+    },
+
+    toggleNotifications() {
+      this.showNotifications = !this.showNotifications
+    },
+
+    getNotificationIcon(type) {
+      const icons = {
+        info: 'mdi:information',
+        success: 'mdi:check-circle',
+        warning: 'mdi:alert-circle',
+        error: 'mdi:close-circle'
+      }
+      return icons[type] || 'mdi:bell'
+    },
+
+    getNotificationBg(type) {
+      const backgrounds = {
+        info: 'bg-blue-100',
+        success: 'bg-green-100',
+        warning: 'bg-yellow-100',
+        error: 'bg-red-100'
+      }
+      return backgrounds[type] || 'bg-gray-100'
+    },
+
+    getNotificationIconColor(type) {
+      const colors = {
+        info: 'text-blue-600',
+        success: 'text-green-600',
+        warning: 'text-yellow-600',
+        error: 'text-red-600'
+      }
+      return colors[type] || 'text-gray-600'
+    },
+
+    getNotificationTitle(type) {
+      const titles = {
+        info: 'Task Created',
+        success: 'Task Completed',
+        warning: 'Task Updated',
+        error: 'Task Deleted'
+      }
+      return titles[type] || 'Notification'
+    },
+
+    getToastIcon() {
+      return this.getNotificationIcon(this.toastType)
+    },
+
+    formatTime(timestamp) {
+      if (!timestamp) return 'Just now'
+      
+      const now = new Date()
+      const time = new Date(timestamp)
+      const diffInSeconds = Math.floor((now - time) / 1000)
+      
+      if (diffInSeconds < 60) return 'Just now'
+      if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`
+      if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`
+      return `${Math.floor(diffInSeconds / 86400)}d ago`
+    },
+
+    handleClickOutside(event) {
+      if (!this.$el.contains(event.target)) {
+        this.showNotifications = false
+      }
+    },
+
+    handleEscapeKey(event) {
+      if (event.key === 'Escape' && this.showNotifications) {
+        this.showNotifications = false
+      }
+    },
+
+    logout() {
+      // localStorage.removeItem('expiry_in')
+      localStorage.removeItem('token')
+      window.location.href = '/auth/login'
+    }
+  }
+}
+</script>
+
+<style scoped>
+.notification-item {
+  transition: all 0.2s ease-in-out;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.notification-item:hover {
+  transform: translateX(2px);
+}
+
+.unread-dot {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.max-h-64::-webkit-scrollbar {
+  width: 6px;
+}
+
+.max-h-64::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.max-h-64::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.max-h-64::-webkit-scrollbar-thumb:hover {
+  background: #a1a1a1;
+}
+
+.dark .max-h-64::-webkit-scrollbar-track {
+  background: #374151;
+}
+
+.dark .max-h-64::-webkit-scrollbar-thumb {
+  background: #6b7280;
+}
+
+.dark .max-h-64::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+</style>
+
 <template>
   <div class="text-center mb-8 relative">
     <h1 class="text-3xl font-bold text-gray-800 mb-8 tracking-wide dark:text-gray-200">TODO LIST</h1>
@@ -16,7 +382,6 @@
       </div>
       
       <div class="flex gap-3 items-center">
-        <!-- make the option viewed when i hover on the select -->
         <div class="relative group">
           <select 
             v-model="selectedFilter" 
@@ -151,365 +516,3 @@
     ></div>
   </div>
 </template>
-
-<script>
-import { Icon } from '@iconify/vue'
-import axios from 'axios'
-
-export default {
-  name: 'HeaderComponent',
-  components: {
-    Icon
-  },
-  props: {
-    isDarkMode: Boolean
-  },
-  emits: ['toggle-dark-mode'],
-  data() {
-    return {
-      searchQuery: '',
-      selectedFilter: 'ALL',
-      showNotifications: false,
-      showToast: false,
-      toastMessage: '',
-      toastType: 'info',
-      toastTask: '',
-      toastTimeout: null,
-      notifications: [],
-      pusher: null,
-      channel: null,
-      loading: false
-    }
-  },
-  computed: {
-    unreadCount() {
-      return this.notifications.filter(n => !n.read).length
-    },
-    toastClasses() {
-      const classes = {
-        info: 'bg-blue-500',
-        success: 'bg-green-500',
-        warning: 'bg-yellow-500',
-        error: 'bg-red-500'
-      }
-      return classes[this.toastType] || 'bg-blue-500'
-    },
-    toastStyle() {
-      return this.showToast 
-        ? 'translate-x-0 opacity-100' 
-        : 'translate-x-full opacity-0'
-    }
-  },
-  async mounted() {
-    await this.fetchNotifications()
-    this.initializePusher()
-    document.addEventListener('click', this.handleClickOutside)
-    document.addEventListener('keydown', this.handleEscapeKey)
-  },
-  beforeUnmount() {
-    if (this.channel) {
-      this.channel.unbind('notification.created')
-    }
-    document.removeEventListener('click', this.handleClickOutside)
-    document.removeEventListener('keydown', this.handleEscapeKey)
-  },
-  methods: {
-    initializePusher() {
-      try {
-        this.pusher = new Pusher('d0d482a2fbc24bdf5600', {
-          cluster: 'mt1',
-          forceTLS: true
-        })
-
-        this.channel = this.pusher.subscribe('notifications')
-
-        this.channel.bind('notification.created', (data) => {
-          this.handleRealTimeNotification(data)
-        })
-
-      } catch (error) {
-        console.error('Error initializing Pusher:', error)
-      }
-    },
-
-    handleRealTimeNotification(data) {
-      const notification = {
-        id: data.id || Date.now(),
-        message: data.message,
-        type: data.type || 'info',
-        data: data.data || {},
-        timestamp: data.timestamp,
-        read: false,
-        created_at: data.timestamp
-      }
-
-      this.notifications.unshift(notification)
-
-      this.showToastNotification(
-        data.message, 
-        data.type || 'info', 
-        data.data?.task_title
-      )
-    },
-    async fetchNotifications() {
-      try {
-        const token = localStorage.getItem('token')
-        if (!token) {
-          console.log('No token found, skipping notification fetch')
-          return
-        }
-        const response = await axios.get('http://127.0.0.1:8000/api/notifications', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Accept': 'application/json'
-          }
-        })
-        this.notifications = response.data.map(notification => ({
-          ...notification,
-          read: Boolean(notification.read)
-        }))
-
-        console.log('Notifications loaded:', this.notifications.length)
-      } catch (error) {
-        console.error('Error fetching notifications:', error)
-      }
-    },
-
-    async markNotificationAsRead(notification) {
-      if (notification.read) {
-        this.showNotifications = false
-        return
-      }
-
-      try {
-        const token = localStorage.getItem('token')
-        if (!token) return
-
-        notification.read = true
-
-        console.log('Marking notification as read:', notification.id)
-        await axios.post(`http://127.0.0.1:8000/api/notifications/${notification.id}`, {}, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Accept': 'application/json'
-          }
-        })
-
-        console.log('Notification marked as read:', notification.id)
-        
-        setTimeout(() => {
-          this.showNotifications = false
-        }, 300)
-
-      } catch (error) {
-        console.error('Error marking notification as read:', error)
-        notification.read = false
-      }
-    },
-
-    async markAllAsRead() {
-      if (this.unreadCount === 0) return
-
-      try {
-        const token = localStorage.getItem('token')
-        if (!token) return
-
-        this.loading = true
-
-        this.notifications.forEach(notification => {
-          notification.read = true
-        })
-
-        await axios.put('http://127.0.0.1:8000/api/notifications/mark-all-read', {}, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Accept': 'application/json'
-          }
-        })
-
-        this.showToastNotification('All notifications marked as read', 'success')
-
-      } catch (error) {
-        console.error('Error marking all notifications as read:', error)
-        this.notifications.forEach(notification => {
-          if (!notification.originalReadState) {
-            notification.read = false
-          }
-        })
-      } finally {
-        this.loading = false
-      }
-    },
-
-    async removeNotification(notificationId) {
-      try {
-        const token = localStorage.getItem('token')
-        if (!token) return
-
-        this.notifications = this.notifications.filter(n => n.id !== notificationId)
-
-        await axios.delete(`http://127.0.0.1:8000/api/notifications/${notificationId}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Accept': 'application/json'
-          }
-        })
-
-        console.log('Notification removed:', notificationId)
-
-      } catch (error) {
-        console.error('Error removing notification:', error)
-      }
-    },
-
-    showToastNotification(message, type = 'info', taskTitle = '') {
-      this.toastMessage = message
-      this.toastType = type
-      this.toastTask = taskTitle
-      this.showToast = true
-
-      clearTimeout(this.toastTimeout)
-      this.toastTimeout = setTimeout(() => {
-        this.hideToast()
-      }, 5000)
-    },
-
-    hideToast() {
-      this.showToast = false
-      clearTimeout(this.toastTimeout)
-    },
-
-    toggleNotifications() {
-      this.showNotifications = !this.showNotifications
-    },
-
-    getNotificationIcon(type) {
-      const icons = {
-        info: 'mdi:information',
-        success: 'mdi:check-circle',
-        warning: 'mdi:alert-circle',
-        error: 'mdi:close-circle'
-      }
-      return icons[type] || 'mdi:bell'
-    },
-
-    getNotificationBg(type) {
-      const backgrounds = {
-        info: 'bg-blue-100',
-        success: 'bg-green-100',
-        warning: 'bg-yellow-100',
-        error: 'bg-red-100'
-      }
-      return backgrounds[type] || 'bg-gray-100'
-    },
-
-    getNotificationIconColor(type) {
-      const colors = {
-        info: 'text-blue-600',
-        success: 'text-green-600',
-        warning: 'text-yellow-600',
-        error: 'text-red-600'
-      }
-      return colors[type] || 'text-gray-600'
-    },
-
-    getNotificationTitle(type) {
-      const titles = {
-        info: 'Task Created',
-        success: 'Task Completed',
-        warning: 'Task Updated',
-        error: 'Task Deleted'
-      }
-      return titles[type] || 'Notification'
-    },
-
-    getToastIcon() {
-      return this.getNotificationIcon(this.toastType)
-    },
-
-    formatTime(timestamp) {
-      if (!timestamp) return 'Just now'
-      
-      const now = new Date()
-      const time = new Date(timestamp)
-      const diffInSeconds = Math.floor((now - time) / 1000)
-      
-      if (diffInSeconds < 60) return 'Just now'
-      if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`
-      if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`
-      return `${Math.floor(diffInSeconds / 86400)}d ago`
-    },
-
-    handleClickOutside(event) {
-      if (!this.$el.contains(event.target)) {
-        this.showNotifications = false
-      }
-    },
-
-    handleEscapeKey(event) {
-      if (event.key === 'Escape' && this.showNotifications) {
-        this.showNotifications = false
-      }
-    },
-
-    logout() {
-      localStorage.removeItem('token')
-      window.location.href = '/auth/login'
-    }
-  }
-}
-</script>
-
-<style scoped>
-.notification-item {
-  transition: all 0.2s ease-in-out;
-}
-
-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.notification-item:hover {
-  transform: translateX(2px);
-}
-
-.unread-dot {
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
-
-.max-h-64::-webkit-scrollbar {
-  width: 6px;
-}
-
-.max-h-64::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 3px;
-}
-
-.max-h-64::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 3px;
-}
-
-.max-h-64::-webkit-scrollbar-thumb:hover {
-  background: #a1a1a1;
-}
-
-.dark .max-h-64::-webkit-scrollbar-track {
-  background: #374151;
-}
-
-.dark .max-h-64::-webkit-scrollbar-thumb {
-  background: #6b7280;
-}
-
-.dark .max-h-64::-webkit-scrollbar-thumb:hover {
-  background: #9ca3af;
-}
-</style>

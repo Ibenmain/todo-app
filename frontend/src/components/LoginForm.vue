@@ -1,3 +1,57 @@
+
+<script setup>
+import { ref, nextTick } from "vue"
+import { Form, Field, ErrorMessage } from "vee-validate"
+import * as yup from "yup"
+import { Icon } from '@iconify/vue'
+import { useRouter } from "vue-router" 
+import api from "@/api"
+
+const router = useRouter()
+const formRef = ref(null) 
+const showPassword = ref(false)
+
+const schema = yup.object({
+  email: yup.string().email("Invalid email").required("Email is required"),
+  password: yup.string().min(6, "At least 6 characters").required("Password is required")
+})
+
+function togglePassword(event) {
+  event.preventDefault()
+  event.stopPropagation()
+  showPassword.value = !showPassword.value
+  
+  nextTick(() => {
+    const passwordField = document.getElementById('password')
+    if (passwordField) {
+      passwordField.focus()
+    }
+  })
+}
+
+async function handleSubmit(values) {
+  try {
+    const response = await api.post("/auth/login", {
+      email: values.email,
+      password: values.password
+    })
+    if (response.status !== 200) {
+      throw new Error("Login failed")
+    }
+    localStorage.setItem("token", response.data.access_token)
+    localStorage.setItem("expires_in", response.data.expires_in)
+    router.push('/todoPage')
+    alert("Login successful!")
+
+  } catch (error) {
+    console.error("Login failed:", error)
+    alert(error.response?.data?.message || "Login failed. Please check your credentials.")
+  }
+}
+</script>
+
+<style src="./AuthForm.css"></style>
+
 <template>
   <div class="auth-container">
     <div class="auth-box">
@@ -50,57 +104,3 @@
     </div>
   </div>
 </template>
-
-<script setup>
-import { ref, nextTick } from "vue"
-import { Form, Field, ErrorMessage } from "vee-validate"
-import * as yup from "yup"
-import axios from "axios" 
-import { Icon } from '@iconify/vue'
-import { useRouter } from "vue-router" 
-import api from "@/api"
-
-const router = useRouter()
-const formRef = ref(null) 
-const showPassword = ref(false)
-
-const schema = yup.object({
-  email: yup.string().email("Invalid email").required("Email is required"),
-  password: yup.string().min(6, "At least 6 characters").required("Password is required")
-})
-
-function togglePassword(event) {
-  event.preventDefault()
-  event.stopPropagation()
-  showPassword.value = !showPassword.value
-  
-  nextTick(() => {
-    const passwordField = document.getElementById('password')
-    if (passwordField) {
-      passwordField.focus()
-    }
-  })
-}
-
-async function handleSubmit(values) {
-  try {
-    const response = await api.post("/auth/login", {
-      email: values.email,
-      password: values.password
-    })
-    if (response.status !== 200) {
-      throw new Error("Login failed")
-    }
-    localStorage.setItem("token", response.data.access_token)
-    localStorage.setItem("expires_in", response.data.expires_in)
-    router.push('/todoPage')
-    alert("Login successful!")
-
-  } catch (error) {
-    console.error("Login failed:", error)
-    alert(error.response?.data?.message || "Login failed. Please check your credentials.")
-  }
-}
-</script>
-
-<style src="./AuthForm.css"></style>

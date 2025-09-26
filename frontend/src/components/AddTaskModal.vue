@@ -1,3 +1,25 @@
+<script setup>
+import { ref, watch, defineProps, defineEmits } from 'vue'
+
+const props = defineProps({
+  show: Boolean
+})
+
+const emit = defineEmits(['close', 'add-task'])
+
+
+
+const newNoteTitle = ref('')
+const newNoteDescription = ref('')
+
+watch(() => props.show, (newVal) => {
+  if (!newVal) {
+    newNoteTitle.value = ''
+    newNoteDescription.value = ''
+  }
+})
+</script>
+
 <template>
   <div
     v-if="show"
@@ -50,23 +72,3 @@
     </div>
   </div>
 </template>
-
-<script setup>
-import { ref, watch, defineProps, defineEmits } from 'vue'
-
-const props = defineProps({
-  show: Boolean
-})
-
-const emit = defineEmits(['close', 'add-task'])
-
-const newNoteTitle = ref('')
-const newNoteDescription = ref('')
-
-watch(() => props.show, (newVal) => {
-  if (!newVal) {
-    newNoteTitle.value = ''
-    newNoteDescription.value = ''
-  }
-})
-</script>
